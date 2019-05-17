@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import React, { Component, Fragment } from 'react';
 
 import Post from '../../components/Feed/Post/Post';
 import Button from '../../components/Button/Button';
@@ -30,7 +30,7 @@ class Feed extends Component {
                 return res.json();
             })
             .then(resData => {
-                this.setState({status: resData.status});
+                this.setState({ status: resData.status });
             })
             .catch(this.catchError);
 
@@ -39,18 +39,18 @@ class Feed extends Component {
 
     loadPosts = direction => {
         if (direction) {
-            this.setState({postsLoading: true, posts: []});
+            this.setState({ postsLoading: true, posts: [] });
         }
         let page = this.state.postPage;
         if (direction === 'next') {
             page++;
-            this.setState({postPage: page});
+            this.setState({ postPage: page });
         }
         if (direction === 'previous') {
             page--;
-            this.setState({postPage: page});
+            this.setState({ postPage: page });
         }
-        fetch('http://127.0.0.1:8000/feed/posts')
+        fetch('http://127.0.0.1:8000/feed/posts?page=' + page)
             .then(res => {
                 if (res.status !== 200) {
                     throw new Error('Failed to fetch posts.');
@@ -88,12 +88,12 @@ class Feed extends Component {
     };
 
     newPostHandler = () => {
-        this.setState({isEditing: true});
+        this.setState({ isEditing: true });
     };
 
     startEditPostHandler = postId => {
         this.setState(prevState => {
-            const loadedPost = {...prevState.posts.find(p => p._id === postId)};
+            const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
 
             return {
                 isEditing: true,
@@ -103,7 +103,7 @@ class Feed extends Component {
     };
 
     cancelEditHandler = () => {
-        this.setState({isEditing: false, editPost: null});
+        this.setState({ isEditing: false, editPost: null });
     };
 
     finishEditHandler = postData => {
@@ -170,12 +170,14 @@ class Feed extends Component {
     };
 
     statusInputChangeHandler = (input, value) => {
-        this.setState({status: value});
+        this.setState({ status: value });
     };
 
     deletePostHandler = postId => {
-        this.setState({postsLoading: true});
-        fetch('URL')
+        this.setState({ postsLoading: true });
+        fetch('http://localhost:8000/feed/post/' + postId, {
+            method: 'DELETE'
+        })
             .then(res => {
                 if (res.status !== 200 && res.status !== 201) {
                     throw new Error('Deleting a post failed!');
@@ -186,27 +188,27 @@ class Feed extends Component {
                 console.log(resData);
                 this.setState(prevState => {
                     const updatedPosts = prevState.posts.filter(p => p._id !== postId);
-                    return {posts: updatedPosts, postsLoading: false};
+                    return { posts: updatedPosts, postsLoading: false };
                 });
             })
             .catch(err => {
                 console.log(err);
-                this.setState({postsLoading: false});
+                this.setState({ postsLoading: false });
             });
     };
 
     errorHandler = () => {
-        this.setState({error: null});
+        this.setState({ error: null });
     };
 
     catchError = error => {
-        this.setState({error: error});
+        this.setState({ error: error });
     };
 
     render() {
         return (
             <Fragment>
-                <ErrorHandler error={this.state.error} onHandle={this.errorHandler}/>
+                <ErrorHandler error={this.state.error} onHandle={this.errorHandler} />
                 <FeedEdit
                     editing={this.state.isEditing}
                     selectedPost={this.state.editPost}
@@ -235,12 +237,12 @@ class Feed extends Component {
                 </section>
                 <section className="feed">
                     {this.state.postsLoading && (
-                        <div style={{textAlign: 'center', marginTop: '2rem'}}>
-                            <Loader/>
+                        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                            <Loader />
                         </div>
                     )}
                     {this.state.posts.length <= 0 && !this.state.postsLoading ? (
-                        <p style={{textAlign: 'center'}}>No posts found.</p>
+                        <p style={{ textAlign: 'center' }}>No posts found.</p>
                     ) : null}
                     {!this.state.postsLoading && (
                         <Paginator
