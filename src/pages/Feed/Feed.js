@@ -57,24 +57,54 @@ class Feed extends Component {
 			page--;
 			this.setState({postPage: page});
 		}
-		fetch('http://127.0.0.1:8000/feed/posts?page=' + page, {
+		const graphqlQuery = {
 
+			query: `query{
+
+
+					getposts{
+
+						posts{
+
+							_id
+							title
+							content
+							imageUrl
+							creator{
+							
+								name
+							}
+							createdAt
+						}
+						totalPosts
+					}
+
+					
+			}`
+		}
+		fetch('http://localhost:8000/graphql', {
+			
+			method: 'POST',
 			headers: {
 
-				Authorization: 'Bearer ' + this.props.token
-			}
+				Authorization: 'Bearer ' + this.props.token,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(graphqlQuery)
 
 
 		})
 			.then(res => {
-				if (res.status !== 200) {
-					throw new Error('Failed to fetch posts.');
-				}
 				return res.json();
 			})
 			.then(resData => {
+
+				console.log(resData)
+				if(resData.errors){
+					throw new Error('Fetching Posts Failed')
+				}
 				this.setState({
-					posts: resData.posts.map((post) => {
+					posts: resData.data.getposts.posts.map((post) => {
 						return {
 							...post,
 							imagePath: resData.imageUrl
@@ -131,25 +161,25 @@ class Feed extends Component {
 		formData.append('image', postData.image);
 
 		let graphqlQuery = {
-		
+
 			query: `
-			
+
 			mutation {
-			
+
 				createPost(postInput:{title:"${postData.title}", content:"${postData.content}", imageUrl:"${postData.image}"}){
-				
+
 					_id
 					title
 					content
 					imageUrl
 					creator{
-					
+
 						name
 					}
 					createdAt
 				}
 			}
-			
+
 			`
 		}
 		fetch('http://localhost:8000/graphql', {
@@ -167,11 +197,11 @@ class Feed extends Component {
 			})
 			.then(resData => {
 				if(resData.errors && resData.errors[0].status===422){
-				
+
 					throw new Error("Validation Falied")
 				}
 				if(resData.errors){
-				
+
 					throw new Error("Post creation failed")
 				}
 				console.log(resData)
@@ -183,11 +213,24 @@ class Feed extends Component {
 					createdAt: resData.data.createPost.createdAt
 				};
 				this.setState(prevState => {
-					return {
-						isEditing: false,
-						editPost: null,
-						editLoading: false
-					};
+					let updatedPosts = [...prevState.posts]
+					if(prevState.editPost){
+					
+						const postIndex = prevState.posts.findIndex(p=>{	
+							return p._id === prevState.editPost._id
+						})
+						updatedPosts[postIndex] = post
+					} else {
+					
+						updatedPosts.unshift(post)
+					}
+					 return {
+					 
+						 posts: updatedPosts,
+						 isEditing: false,
+						 editPost: null,
+						 editLoading: false
+					 }
 				});
 			})
 			.catch(err => {
