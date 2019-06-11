@@ -155,33 +155,33 @@ class Feed extends Component {
 		});
 		const formData = new FormData()
 		formData.append('image', postData.image);
-		if(this.state.editPost){
-		
+		if (this.state.editPost) {
+
 			formData.append('oldPath', this.state.editPost.imagePath)
 		}
 
-		fetch('http://localhost:8000/post-image',{
-		
+		fetch('http://localhost:8000/post-image', {
+
 			method: 'PUT',
 			headers: {
-			
-				Authorization: 'Bearer '+this.props.token,
+
+				Authorization: 'Bearer ' + this.props.token,
 			},
 			body: formData
 		})
-		.then((res)=>{
-		
-			return res.json()
-		})
-		.then((fileResponseData)=>{
+			.then((res) => {
 
-			const imageUrl = fileResponseData.filePath;
+				return res.json()
+			})
+			.then((fileResponseData) => {
+
+				const imageUrl = fileResponseData.filePath;
 
 
 
-		let graphqlQuery = {
+				let graphqlQuery = {
 
-			query: `
+					query: `
 
 			mutation {
 
@@ -200,21 +200,21 @@ class Feed extends Component {
 			}
 
 			`
-		}
-		return fetch('http://localhost:8000/graphql', {
-			method: 'POST',
-			body: JSON.stringify(graphqlQuery),
+				}
+				return fetch('http://localhost:8000/graphql', {
+					method: 'POST',
+					body: JSON.stringify(graphqlQuery),
 
-			headers: {
+					headers: {
 
-				Authorization: 'Bearer ' + this.props.token,
-				'Content-Type': 'application/json'
-			}
-		})
+						Authorization: 'Bearer ' + this.props.token,
+						'Content-Type': 'application/json'
+					}
+				})
 
-		
 
-		})
+
+			})
 
 			.then(res => {
 				return res.json();
