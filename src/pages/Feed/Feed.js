@@ -23,20 +23,40 @@ class Feed extends Component {
 	};
 
 	componentDidMount() {
-		console.log(this.props.token)
-		fetch('http://127.0.0.1:8000/feed/post/user/status', {
-			headers: {
-				Authorization: 'Bearer ' + this.props.token
+		const graphqlQuery = {
+		
+			query: `
+			
+			query{
+			
+				user{
+				
+					status
+				}
+			
 			}
+			
+			`
+		}
+		console.log(this.props.token)
+		fetch('http://localhost:8000/graphql', {
+			method:'POST',
+			headers: {
+				Authorization: 'Bearer ' + this.props.token,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(graphqlQuery)
 		})
 			.then(res => {
-				if (res.status !== 200) {
-					throw new Error('Failed to fetch user status.');
-				}
 				return res.json();
 			})
 			.then(resData => {
-				this.setState({ status: resData.status });
+				console.log(resData)
+				if(resData.errors){
+				
+					throw new Error('Fetching User Status Failed')
+				}
+				this.setState({ status: resData.data.user.status });
 			})
 			.catch(this.catchError);
 
@@ -62,24 +82,24 @@ class Feed extends Component {
 			query: `query{
 
 
-					getposts(page:${page}){
+				getposts(page:${page}){
 
-						posts{
+					posts{
 
-							_id
-							title
-							content
-							imageUrl
-							creator{
-							
-								name
-							}
-							createdAt
+						_id
+						title
+						content
+						imageUrl
+						creator{
+
+							name
 						}
-						totalPosts
+						createdAt
 					}
+					totalPosts
+				}
 
-					
+
 			}`
 		}
 		fetch('http://localhost:8000/graphql', {
@@ -117,14 +137,38 @@ class Feed extends Component {
 
 	statusUpdateHandler = event => {
 		event.preventDefault();
-		fetch('URL')
-			.then(res => {
-				if (res.status !== 200 && res.status !== 201) {
-					throw new Error("Can't update status!");
+		const graphqlQuery = {
+		
+			query: `
+			
+			mutation{
+			
+				updateStatus(status:"${this.state.status}"){
+				
+					status
 				}
+			
+			}
+			`
+		}
+		fetch('http://localhost:8000/graphql',{
+		
+			method:'POST',
+			headers:{
+			
+				Authorization: 'Bearer '+this.props.token,
+				'Content-Type':'application/json'
+			},
+			body: JSON.stringify(graphqlQuery)
+		})
+			.then(res => {
 				return res.json();
 			})
 			.then(resData => {
+				if(resData.errors){
+				
+					throw new Error('Updating Post Failed')
+				}
 				console.log(resData);
 			})
 			.catch(this.catchError);
@@ -183,23 +227,23 @@ class Feed extends Component {
 
 					query: `
 
-			mutation {
+					mutation {
 
-				createPost(postInput:{title:"${postData.title}", content:"${postData.content}", imageUrl:"${imageUrl}"}){
+						createPost(postInput:{title:"${postData.title}", content:"${postData.content}", imageUrl:"${imageUrl}"}){
 
-					_id
-					title
-					content
-					imageUrl
-					creator{
+							_id
+							title
+							content
+							imageUrl
+							creator{
 
-						name
+								name
+							}
+							createdAt
+						}
 					}
-					createdAt
-				}
-			}
 
-			`
+					`
 				}
 
 				if(this.state.editPost){
@@ -207,27 +251,27 @@ class Feed extends Component {
 					graphqlQuery = {
 
 						query: `
-						
-						
-			mutation {
 
-				updatePost(id:"${this.state.editPost._id}",postInput:{title:"${postData.title}", content:"${postData.content}", imageUrl:"${imageUrl}"}){
 
-					_id
-					title
-					content
-					imageUrl
-					creator{
+						mutation {
 
-						name
-					}
-					createdAt
-				}
-			}
+							updatePost(id:"${this.state.editPost._id}",postInput:{title:"${postData.title}", content:"${postData.content}", imageUrl:"${imageUrl}"}){
+
+								_id
+								title
+								content
+								imageUrl
+								creator{
+
+									name
+								}
+								createdAt
+							}
+						}
 						`
 
 					}
-					
+
 				}
 				return fetch('http://localhost:8000/graphql', {
 					method: 'POST',
@@ -258,7 +302,7 @@ class Feed extends Component {
 				}
 				let resDataField = 'createPost'
 				if(this.state.editPost){
-				
+
 					resDataField = 'updatePost'
 				}
 				const post = {
@@ -276,10 +320,14 @@ class Feed extends Component {
 						const postIndex = prevState.posts.findIndex(p => {
 							return p._id === prevState.editPost._id
 						})
+
 						updatedPosts[postIndex] = post
 					} else {
 
-						updatedPosts.pop()
+						if(prevState.posts.length>=2){
+
+							updatedPosts.pop()
+						}
 						updatedPosts.unshift(post)
 					}
 					return {
@@ -311,15 +359,15 @@ class Feed extends Component {
 		const graphqlQuery = {
 
 			query: `
-			
+
 			mutation{
-			
+
 				deletePost(id:"${postId}")
-			
+
 			}
-			
+
 			`
-		
+
 		}
 		fetch('http://localhost:8000/graphql' , {
 			method: 'POST',
@@ -336,7 +384,7 @@ class Feed extends Component {
 			})
 			.then(resData => {
 				if(resData.errors){
-				
+
 					throw new Error('Deleting The Post Failed')
 				}
 				console.log(resData);
@@ -363,65 +411,65 @@ class Feed extends Component {
 	render() {
 		return (
 			<Fragment>
-				<ErrorHandler error={this.state.error} onHandle={this.errorHandler} />
-				<FeedEdit
-					editing={this.state.isEditing}
-					selectedPost={this.state.editPost}
-					loading={this.state.editLoading}
-					onCancelEdit={this.cancelEditHandler}
-					onFinishEdit={this.finishEditHandler}
-				/>
-				<section className="feed__status">
-					<form onSubmit={this.statusUpdateHandler}>
-						<Input
-							type="text"
-							placeholder="Your status"
-							control="input"
-							onChange={this.statusInputChangeHandler}
-							value={this.state.status}
-						/>
-						<Button mode="flat" type="submit">
-							Update
+			<ErrorHandler error={this.state.error} onHandle={this.errorHandler} />
+			<FeedEdit
+			editing={this.state.isEditing}
+			selectedPost={this.state.editPost}
+			loading={this.state.editLoading}
+			onCancelEdit={this.cancelEditHandler}
+			onFinishEdit={this.finishEditHandler}
+			/>
+			<section className="feed__status">
+			<form onSubmit={this.statusUpdateHandler}>
+			<Input
+			type="text"
+			placeholder="Your status"
+			control="input"
+			onChange={this.statusInputChangeHandler}
+			value={this.state.status}
+			/>
+			<Button mode="flat" type="submit">
+			Update
 			</Button>
-					</form>
-				</section>
-				<section className="feed__control">
-					<Button mode="raised" design="accent" onClick={this.newPostHandler}>
-						New Post
+			</form>
+			</section>
+			<section className="feed__control">
+			<Button mode="raised" design="accent" onClick={this.newPostHandler}>
+			New Post
 			</Button>
-				</section>
-				<section className="feed">
-					{this.state.postsLoading && (
-						<div style={{ textAlign: 'center', marginTop: '2rem' }}>
-							<Loader />
-						</div>
-					)}
-					{this.state.posts.length <= 0 && !this.state.postsLoading ? (
-						<p style={{ textAlign: 'center' }}>No posts found.</p>
-					) : null}
-					{!this.state.postsLoading && (
-						<Paginator
-							onPrevious={this.loadPosts.bind(this, 'previous')}
-							onNext={() => this.loadPosts('next')}
-							lastPage={Math.ceil(this.state.totalPosts / 2)}
-							currentPage={this.state.postPage}
-						>
-							{this.state.posts.map(post => (
-								<Post
-									key={post._id}
-									id={post._id}
-									author={post.creator.name}
-									date={new Date(post.createdAt).toLocaleDateString('en-US')}
-									title={post.title}
-									image={post.imageUrl}
-									content={post.content}
-									onStartEdit={this.startEditPostHandler.bind(this, post._id)}
-									onDelete={this.deletePostHandler.bind(this, post._id)}
-								/>
-							))}
-						</Paginator>
-					)}
-				</section>
+			</section>
+			<section className="feed">
+			{this.state.postsLoading && (
+				<div style={{ textAlign: 'center', marginTop: '2rem' }}>
+				<Loader />
+				</div>
+			)}
+			{this.state.posts.length <= 0 && !this.state.postsLoading ? (
+				<p style={{ textAlign: 'center' }}>No posts found.</p>
+			) : null}
+			{!this.state.postsLoading && (
+				<Paginator
+				onPrevious={this.loadPosts.bind(this, 'previous')}
+				onNext={() => this.loadPosts('next')}
+				lastPage={Math.ceil(this.state.totalPosts / 2)}
+				currentPage={this.state.postPage}
+				>
+				{this.state.posts.map(post => (
+					<Post
+					key={post._id}
+					id={post._id}
+					author={post.creator.name}
+					date={new Date(post.createdAt).toLocaleDateString('en-US')}
+					title={post.title}
+					image={post.imageUrl}
+					content={post.content}
+					onStartEdit={this.startEditPostHandler.bind(this, post._id)}
+					onDelete={this.deletePostHandler.bind(this, post._id)}
+					/>
+				))}
+				</Paginator>
+			)}
+			</section>
 			</Fragment>
 		);
 	}
