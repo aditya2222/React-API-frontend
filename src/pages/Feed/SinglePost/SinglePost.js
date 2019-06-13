@@ -77,4 +77,4 @@ class SinglePost extends Component {
     }
 }
 
-export default SinglePost;
+export default SinglePost
